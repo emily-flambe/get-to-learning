@@ -33,7 +33,7 @@ app.get('/projects/:projectId/modules', async (c) => {
 });
 
 // GET /api/modules/:id - Get module with content counts
-app.get('/:id', async (c) => {
+app.get('/modules/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {
@@ -87,7 +87,7 @@ app.post('/projects/:projectId/modules', async (c) => {
 });
 
 // PUT /api/modules/:id - Update module
-app.put('/:id', async (c) => {
+app.put('/modules/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {
@@ -118,7 +118,7 @@ app.put('/:id', async (c) => {
 });
 
 // DELETE /api/modules/:id - Delete module
-app.delete('/:id', async (c) => {
+app.delete('/modules/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {

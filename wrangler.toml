@@ -16,4 +16,4 @@ database_name = "gtl-db"
 database_id = "d740952f-4fd9-4a0b-b85f-2ffd042fffd3"
 
 [dev]
-port = 8787
+port = 8788

@@ -104,7 +104,7 @@ app.post('/modules/:moduleId/faqs/bulk', async (c) => {
 
     return c.json({
       success: true,
-      count: faqs.length,
+      created: faqs.length,
       faqs
     }, 201);
   } catch (error) {
@@ -114,7 +114,7 @@ app.post('/modules/:moduleId/faqs/bulk', async (c) => {
 });
 
 // PUT /api/faqs/:id - Update FAQ
-app.put('/:id', async (c) => {
+app.put('/faqs/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {
@@ -144,7 +144,7 @@ app.put('/:id', async (c) => {
 });
 
 // DELETE /api/faqs/:id - Delete FAQ
-app.delete('/:id', async (c) => {
+app.delete('/faqs/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {

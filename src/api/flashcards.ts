@@ -104,7 +104,7 @@ app.post('/modules/:moduleId/flashcards/bulk', async (c) => {
 
     return c.json({
       success: true,
-      count: flashcards.length,
+      created: flashcards.length,
       flashcards
     }, 201);
   } catch (error) {
@@ -114,7 +114,7 @@ app.post('/modules/:moduleId/flashcards/bulk', async (c) => {
 });
 
 // PUT /api/flashcards/:id - Update flashcard
-app.put('/:id', async (c) => {
+app.put('/flashcards/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {
@@ -144,7 +144,7 @@ app.put('/:id', async (c) => {
 });
 
 // DELETE /api/flashcards/:id - Delete flashcard
-app.delete('/:id', async (c) => {
+app.delete('/flashcards/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {
