@@ -84,7 +84,7 @@
   }
   
   function exit() {
-    window.location.hash = '#/modules/' + moduleId;
+    window.location.href = '/#/modules/' + moduleId;
   }
   
   function reset() {
