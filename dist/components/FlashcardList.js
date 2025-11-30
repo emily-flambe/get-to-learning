@@ -120,7 +120,7 @@
   }
   
   function startReview() {
-    if (window.ReviewMode) window.ReviewMode.start(currentModuleId, flashcards);
+    window.location.href = '/review.html?module=' + currentModuleId;
   }
   
   function render(containerId) {
