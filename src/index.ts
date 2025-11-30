@@ -8,6 +8,12 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { Env } from './types';
 
+// Import API route modules
+import projects from './api/projects';
+import modules from './api/modules';
+import flashcards from './api/flashcards';
+import faqs from './api/faqs';
+
 // Create Hono app with typed bindings
 const app = new Hono<{ Bindings: Env }>();
 
@@ -26,10 +32,11 @@ app.get('/api/health', (c) => {
   });
 });
 
-// Placeholder routes - to be implemented by subagents
-app.get('/api/projects', (c) => {
-  return c.json({ message: 'Projects endpoint - to be implemented' });
-});
+// Mount API routes
+app.route('/api/projects', projects);
+app.route('/api', modules);
+app.route('/api', flashcards);
+app.route('/api', faqs);
 
 // 404 handler
 app.notFound((c) => {
