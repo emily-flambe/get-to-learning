@@ -84,14 +84,7 @@
   }
   
   function exit() {
-    if (window.location.hash) {
-      window.location.hash = window.location.hash.replace('/review', '');
-    } else if (window.history && window.history.back) {
-      window.history.back();
-    } else {
-      const container = document.getElementById(containerId);
-      if (container) container.innerHTML = '<p>Exiting review mode...</p>';
-    }
+    window.location.hash = '#/modules/' + moduleId;
   }
   
   function reset() {
