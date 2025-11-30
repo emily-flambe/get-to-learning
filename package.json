@@ -4,12 +4,13 @@
   "description": "Personal learning platform with flashcards and FAQs",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:prod": "wrangler deploy --env production",
+    "dev": "npm run build:frontend && wrangler dev",
+    "deploy": "npm run build:frontend && wrangler deploy",
+    "deploy:prod": "npm run build:frontend && wrangler deploy --env production",
     "db:init": "wrangler d1 execute gtl-db --local --file=./src/db/schema.sql",
     "db:init:remote": "wrangler d1 execute gtl-db --remote --file=./src/db/schema.sql",
     "build": "vite build",
+    "build:frontend": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
