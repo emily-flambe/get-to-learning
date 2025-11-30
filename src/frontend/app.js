@@ -54,6 +54,10 @@ function parseRoute(route) {
     return { view: 'content', moduleId: parseInt(parts[1]) };
   }
 
+  if (parts[0] === 'modules' && parts.length === 3 && parts[2] === 'review') {
+    return { view: 'review', moduleId: parseInt(parts[1]) };
+  }
+
   return { view: 'projects' };
 }
 
@@ -69,7 +73,9 @@ async function handleRoute() {
     } else if (parsed.view === 'modules') {
       await renderModuleList(parsed.projectId);
     } else if (parsed.view === 'content') {
-      renderContentPlaceholder(parsed.moduleId);
+      await renderModuleContent(parsed.moduleId);
+    } else if (parsed.view === 'review') {
+      await startReviewMode(parsed.moduleId);
     }
   } catch (error) {
     console.error('Route error:', error);
@@ -186,24 +192,79 @@ async function renderModuleList(projectId) {
   }
 }
 
-// Content View Placeholder
-function renderContentPlaceholder(moduleId) {
+// Module Content View with Flashcards and FAQs
+async function renderModuleContent(moduleId) {
   const app = document.getElementById('app');
   const breadcrumb = document.getElementById('breadcrumb');
 
-  breadcrumb.innerHTML = `
-    <a href="#/" onclick="navigate('/')">Projects</a>
-    <span>/</span>
-    <span>Module ${moduleId}</span>
-  `;
+  state.currentModule = moduleId;
+  app.innerHTML = '<div class="loading">Loading module content...</div>';
 
-  app.innerHTML = `
-    <div class="page-header">
-      <h2>Module Content</h2>
-    </div>
-    <p>Content view will be implemented by another agent. Module ID: ${moduleId}</p>
-    <p style="margin-top: 1rem;"><a href="#/" onclick="navigate('/')">Back to Projects</a></p>
-  `;
+  try {
+    // Fetch module details
+    const module = await fetchAPI(`/modules/${moduleId}`);
+
+    // Find the parent project for breadcrumb
+    let projectName = 'Project';
+    let projectId = null;
+    if (module.project_id) {
+      const project = await fetchAPI(`/projects/${module.project_id}`);
+      projectName = project.name;
+      projectId = project.id;
+      state.currentProject = projectId;
+    }
+
+    breadcrumb.innerHTML = `
+      <a href="#/" onclick="navigate('/')">Projects</a>
+      <span>/</span>
+      ${projectId ? `<a href="#/projects/${projectId}" onclick="navigate('/projects/${projectId}')">${escapeHtml(projectName)}</a>` : `<span>${escapeHtml(projectName)}</span>`}
+      <span>/</span>
+      <span>${escapeHtml(module.name)}</span>
+    `;
+
+    app.innerHTML = `
+      <a href="#/projects/${projectId}" class="back-link" onclick="navigate('/projects/${projectId}')">← Back to Modules</a>
+      <div class="page-header">
+        <h2>${escapeHtml(module.name)}</h2>
+      </div>
+      ${module.description ? `<p style="margin-bottom: 2rem; color: #666;">${escapeHtml(module.description)}</p>` : ''}
+
+      <!-- Flashcard container -->
+      <div id="flashcard-container"></div>
+
+      <!-- FAQ container -->
+      <div id="faq-container"></div>
+    `;
+
+    // Load flashcards and FAQs using the content components
+    if (typeof FlashcardList !== 'undefined') {
+      FlashcardList.load(moduleId);
+    }
+    if (typeof FAQList !== 'undefined') {
+      FAQList.load(moduleId);
+    }
+  } catch (error) {
+    showError('Failed to load module content: ' + error.message);
+  }
+}
+
+// Review Mode
+async function startReviewMode(moduleId) {
+  try {
+    const flashcards = await fetchAPI(`/modules/${moduleId}/flashcards`);
+    if (flashcards.length === 0) {
+      showError('No flashcards to review');
+      navigate(`/modules/${moduleId}`);
+      return;
+    }
+    if (typeof ReviewMode !== 'undefined') {
+      ReviewMode.start(moduleId, flashcards);
+    } else {
+      showError('Review mode not available');
+    }
+  } catch (error) {
+    showError('Failed to start review: ' + error.message);
+  }
 }
 
 // Modal management

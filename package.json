@@ -9,8 +9,8 @@
     "deploy:prod": "npm run build:frontend && wrangler deploy --env production",
     "db:init": "wrangler d1 execute gtl-db --local --file=./src/db/schema.sql",
     "db:init:remote": "wrangler d1 execute gtl-db --remote --file=./src/db/schema.sql",
-    "build": "vite build",
-    "build:frontend": "vite build",
+    "build": "vite build && git checkout HEAD -- dist/components/",
+    "build:frontend": "vite build && git checkout HEAD -- dist/components/",
     "preview": "vite preview"
   },
   "dependencies": {
