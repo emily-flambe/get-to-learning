@@ -172,9 +172,13 @@
   }
 
   async function deleteQuestion(id) {
-    if (!confirm('Are you sure you want to delete this question?')) return;
+    const password = prompt('Enter password to delete this question:');
+    if (!password) return;
     try {
-      const response = await fetch(API_BASE + '/faqs/' + id, { method: 'DELETE' });
+      const response = await fetch(API_BASE + '/faqs/' + id, {
+        method: 'DELETE',
+        headers: { 'X-Delete-Password': password }
+      });
       if (!response.ok) throw new Error('Failed to delete question');
       await loadQuestions(currentModuleId);
     } catch (error) {

@@ -96,4 +96,5 @@ export interface UpdateFAQRequest {
 
 export interface Env {
   DB: D1Database;
+  DELETE_PASSWORD: string;
 }

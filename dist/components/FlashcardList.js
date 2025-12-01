@@ -125,9 +125,13 @@
   }
 
   async function deleteFlashcard(id) {
-    if (!confirm('Are you sure you want to delete this flashcard?')) return;
+    const password = prompt('Enter password to delete this flashcard:');
+    if (!password) return;
     try {
-      const response = await fetch(API_BASE + '/flashcards/' + id, { method: 'DELETE' });
+      const response = await fetch(API_BASE + '/flashcards/' + id, {
+        method: 'DELETE',
+        headers: { 'X-Delete-Password': password }
+      });
       if (!response.ok) throw new Error('Failed to delete flashcard');
       selectedFlashcardId = null;
       await loadFlashcards(currentModuleId);

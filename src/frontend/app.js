@@ -375,12 +375,14 @@ async function updateProject(event, projectId) {
 }
 
 async function deleteProject(projectId) {
-  if (!confirm('Are you sure you want to delete this project? This will also delete all modules and content.')) {
-    return;
-  }
+  const password = prompt('Enter password to delete this project (this will also delete all modules and content):');
+  if (!password) return;
 
   try {
-    await fetchAPI(`/projects/${projectId}`, { method: 'DELETE' });
+    await fetchAPI(`/projects/${projectId}`, {
+      method: 'DELETE',
+      headers: { 'X-Delete-Password': password }
+    });
     await renderProjectList();
   } catch (error) {
     showError('Failed to delete project: ' + error.message);
@@ -468,12 +470,14 @@ async function updateModule(event, moduleId) {
 }
 
 async function deleteModule(moduleId) {
-  if (!confirm('Are you sure you want to delete this module? This will also delete all flashcards and FAQs.')) {
-    return;
-  }
+  const password = prompt('Enter password to delete this module (this will also delete all flashcards and FAQs):');
+  if (!password) return;
 
   try {
-    await fetchAPI(`/modules/${moduleId}`, { method: 'DELETE' });
+    await fetchAPI(`/modules/${moduleId}`, {
+      method: 'DELETE',
+      headers: { 'X-Delete-Password': password }
+    });
     await renderModuleList(state.currentProject);
   } catch (error) {
     showError('Failed to delete module: ' + error.message);

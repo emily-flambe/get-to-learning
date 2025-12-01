@@ -23,6 +23,18 @@ app.use('*', cors({
   credentials: true,
 }));
 
+// Password protection for DELETE requests
+app.use('*', async (c, next) => {
+  if (c.req.method === 'DELETE') {
+    const password = c.req.header('X-Delete-Password');
+    const expectedPassword = c.env.DELETE_PASSWORD || 'hunter2';
+    if (password !== expectedPassword) {
+      return c.json({ error: 'Invalid password' }, 401);
+    }
+  }
+  await next();
+});
+
 // Health check endpoint
 app.get('/api/health', (c) => {
   return c.json({
