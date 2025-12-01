@@ -177,7 +177,6 @@ async function renderModuleList(projectId) {
             <h3>${escapeHtml(module.name)}</h3>
             ${module.description ? `<p>${escapeHtml(module.description)}</p>` : ''}
             <div class="list-item-actions">
-              <button class="btn-secondary btn-small" onclick="event.stopPropagation(); showEditModuleForm(${module.id})">Edit</button>
               <button class="btn-danger btn-small" onclick="event.stopPropagation(); deleteModule(${module.id})">Delete</button>
             </div>
           </div>
