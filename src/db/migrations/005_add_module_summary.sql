@@ -2,7 +2,8 @@
 
 ALTER TABLE modules ADD COLUMN summary TEXT;
 
--- Populate summary for module 3 (Database Internals Chapters 4-6)
+-- Populate summary for module 2 (Database Internals Chapters 4-6)
+-- Note: Remote DB has module ID 2, local has ID 3
 UPDATE modules SET summary = '## Chapter 4: B-Tree Implementation
 
 **Core insight:** B-Trees are about navigating and maintaining a sorted structure on disk. Everything (page headers, sibling links, breadcrumbs) exists to make traversal and modification efficient.
