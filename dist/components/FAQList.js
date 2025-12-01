@@ -11,6 +11,13 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
+  function renderMarkdown(text) {
+    if (!text) return '';
+    return escapeHtml(text)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')  // **bold**
+      .replace(/\n/g, '<br>');  // newlines
+  }
+
   function showError(message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
@@ -65,7 +72,7 @@
       '<span class="faq-icon">' + (isExpanded ? '&#9660;' : '&#9654;') + '</span>' +
       '<span class="faq-question-text">' + escapeHtml(q.question) + '</span></div>' +
       '<div class="faq-answer ' + (isExpanded ? '' : 'hidden') + '">' +
-      '<div class="faq-answer-text">' + escapeHtml(q.answer) + '</div>' +
+      '<div class="faq-answer-text">' + renderMarkdown(q.answer) + '</div>' +
       renderQuestionTags(q.tags) +
       '<div class="faq-actions">' +
       '<button onclick="event.stopPropagation(); FAQList.editQuestion(' + q.id + ')">Edit</button>' +
