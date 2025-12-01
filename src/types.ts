@@ -27,14 +27,18 @@ export interface Flashcard {
   updated_at: number;
 }
 
-export interface FAQ {
+export interface Question {
   id: number;
   module_id: number;
   question: string;
   answer: string;
+  tags: string[];
   created_at: number;
   updated_at: number;
 }
+
+// Keep FAQ as alias for backwards compatibility
+export type FAQ = Question;
 
 // API request types
 

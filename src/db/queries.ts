@@ -9,7 +9,7 @@ import type {
   Project,
   Module,
   Flashcard,
-  FAQ,
+  Question,
   CreateProjectRequest,
   UpdateProjectRequest,
   CreateModuleRequest,
@@ -19,6 +19,28 @@ import type {
   CreateFAQRequest,
   UpdateFAQRequest
 } from '../types';
+
+// Helper to parse tags from JSON string stored in DB
+function parseTags(tagsJson: string | null | undefined): string[] {
+  if (!tagsJson) return [];
+  try {
+    const parsed = JSON.parse(tagsJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+// DB row type (tags stored as JSON string)
+interface QuestionRow {
+  id: number;
+  module_id: number;
+  question: string;
+  answer: string;
+  tags: string | null;
+  created_at: number;
+  updated_at: number;
+}
 
 // ============================================================================
 // PROJECTS
@@ -312,31 +334,39 @@ export async function deleteFlashcard(db: D1Database, id: number): Promise<boole
 }
 
 // ============================================================================
-// FAQs
+// QUESTIONS (formerly FAQs)
 // ============================================================================
 
-export async function getFAQsByModule(db: D1Database, moduleId: number): Promise<FAQ[]> {
+export async function getQuestionsByModule(db: D1Database, moduleId: number): Promise<Question[]> {
   const result = await db.prepare(
     'SELECT * FROM faqs WHERE module_id = ? ORDER BY created_at ASC'
-  ).bind(moduleId).all<FAQ>();
-  return result.results || [];
+  ).bind(moduleId).all<QuestionRow>();
+  return (result.results || []).map(row => ({
+    ...row,
+    tags: parseTags(row.tags)
+  }));
 }
 
-export async function getFAQById(db: D1Database, id: number): Promise<FAQ | null> {
+export async function getQuestionById(db: D1Database, id: number): Promise<Question | null> {
   const result = await db.prepare(
     'SELECT * FROM faqs WHERE id = ?'
-  ).bind(id).first<FAQ>();
-  return result;
+  ).bind(id).first<QuestionRow>();
+  if (!result) return null;
+  return {
+    ...result,
+    tags: parseTags(result.tags)
+  };
 }
 
-export async function createFAQ(db: D1Database, moduleId: number, data: CreateFAQRequest): Promise<FAQ> {
+export async function createQuestion(db: D1Database, moduleId: number, data: CreateFAQRequest & { tags?: string[] }): Promise<Question> {
   const now = Math.floor(Date.now() / 1000);
+  const tagsJson = JSON.stringify(data.tags || []);
   const result = await db.prepare(
-    'INSERT INTO faqs (module_id, question, answer, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-  ).bind(moduleId, data.question, data.answer, now, now).run();
+    'INSERT INTO faqs (module_id, question, answer, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(moduleId, data.question, data.answer, tagsJson, now, now).run();
 
   if (!result.success) {
-    throw new Error('Failed to create FAQ');
+    throw new Error('Failed to create question');
   }
 
   return {
@@ -344,38 +374,41 @@ export async function createFAQ(db: D1Database, moduleId: number, data: CreateFA
     module_id: moduleId,
     question: data.question,
     answer: data.answer,
+    tags: data.tags || [],
     created_at: now,
     updated_at: now,
   };
 }
 
-export async function bulkCreateFAQs(db: D1Database, moduleId: number, data: CreateFAQRequest[]): Promise<FAQ[]> {
+export async function bulkCreateQuestions(db: D1Database, moduleId: number, data: (CreateFAQRequest & { tags?: string[] })[]): Promise<Question[]> {
   const now = Math.floor(Date.now() / 1000);
-  const faqs: FAQ[] = [];
+  const questions: Question[] = [];
 
   for (const item of data) {
+    const tagsJson = JSON.stringify(item.tags || []);
     const result = await db.prepare(
-      'INSERT INTO faqs (module_id, question, answer, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-    ).bind(moduleId, item.question, item.answer, now, now).run();
+      'INSERT INTO faqs (module_id, question, answer, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(moduleId, item.question, item.answer, tagsJson, now, now).run();
 
     if (!result.success) {
-      throw new Error('Failed to create FAQ in bulk operation');
+      throw new Error('Failed to create question in bulk operation');
     }
 
-    faqs.push({
+    questions.push({
       id: result.meta.last_row_id as number,
       module_id: moduleId,
       question: item.question,
       answer: item.answer,
+      tags: item.tags || [],
       created_at: now,
       updated_at: now,
     });
   }
 
-  return faqs;
+  return questions;
 }
 
-export async function updateFAQ(db: D1Database, id: number, data: UpdateFAQRequest): Promise<FAQ | null> {
+export async function updateQuestion(db: D1Database, id: number, data: UpdateFAQRequest & { tags?: string[] }): Promise<Question | null> {
   const updates: string[] = [];
   const values: (string | number)[] = [];
 
@@ -389,8 +422,13 @@ export async function updateFAQ(db: D1Database, id: number, data: UpdateFAQReque
     values.push(data.answer);
   }
 
+  if (data.tags !== undefined) {
+    updates.push('tags = ?');
+    values.push(JSON.stringify(data.tags));
+  }
+
   if (updates.length === 0) {
-    return getFAQById(db, id);
+    return getQuestionById(db, id);
   }
 
   updates.push('updated_at = ?');
@@ -405,12 +443,20 @@ export async function updateFAQ(db: D1Database, id: number, data: UpdateFAQReque
     return null;
   }
 
-  return getFAQById(db, id);
+  return getQuestionById(db, id);
 }
 
-export async function deleteFAQ(db: D1Database, id: number): Promise<boolean> {
+export async function deleteQuestion(db: D1Database, id: number): Promise<boolean> {
   const result = await db.prepare(
     'DELETE FROM faqs WHERE id = ?'
   ).bind(id).run();
   return result.success && (result.meta.changes || 0) > 0;
 }
+
+// Legacy aliases for backwards compatibility
+export const getFAQsByModule = getQuestionsByModule;
+export const getFAQById = getQuestionById;
+export const createFAQ = createQuestion;
+export const bulkCreateFAQs = bulkCreateQuestions;
+export const updateFAQ = updateQuestion;
+export const deleteFAQ = deleteQuestion;

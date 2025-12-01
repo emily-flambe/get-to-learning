@@ -1,7 +1,8 @@
 /**
- * FAQs API Routes
+ * Questions API Routes (formerly FAQs)
  *
- * Handles CRUD operations for FAQs within modules
+ * Handles CRUD operations for questions within modules
+ * Questions can have tags for filtering
  */
 
 import { Hono } from 'hono';
@@ -10,7 +11,20 @@ import * as db from '../db/queries';
 
 const app = new Hono<{ Bindings: Env }>();
 
-// GET /api/modules/:moduleId/faqs - List FAQs in module
+// Extended request types with tags
+interface CreateQuestionRequest extends CreateFAQRequest {
+  tags?: string[];
+}
+
+interface BulkCreateQuestionsRequest {
+  questions: CreateQuestionRequest[];
+}
+
+interface UpdateQuestionRequest extends UpdateFAQRequest {
+  tags?: string[];
+}
+
+// GET /api/modules/:moduleId/faqs - List questions in module
 app.get('/modules/:moduleId/faqs', async (c) => {
   try {
     const moduleId = parseInt(c.req.param('moduleId'));
@@ -24,15 +38,15 @@ app.get('/modules/:moduleId/faqs', async (c) => {
       return c.json({ error: 'Module not found' }, 404);
     }
 
-    const faqs = await db.getFAQsByModule(c.env.DB, moduleId);
-    return c.json(faqs);
+    const questions = await db.getQuestionsByModule(c.env.DB, moduleId);
+    return c.json(questions);
   } catch (error) {
-    console.error('Error fetching FAQs:', error);
-    return c.json({ error: 'Failed to fetch FAQs' }, 500);
+    console.error('Error fetching questions:', error);
+    return c.json({ error: 'Failed to fetch questions' }, 500);
   }
 });
 
-// POST /api/modules/:moduleId/faqs - Create single FAQ
+// POST /api/modules/:moduleId/faqs - Create single question
 app.post('/modules/:moduleId/faqs', async (c) => {
   try {
     const moduleId = parseInt(c.req.param('moduleId'));
@@ -46,29 +60,35 @@ app.post('/modules/:moduleId/faqs', async (c) => {
       return c.json({ error: 'Module not found' }, 404);
     }
 
-    const body = await c.req.json<CreateFAQRequest>();
+    const body = await c.req.json<CreateQuestionRequest>();
 
     // Validate required fields
     if (!body.question || typeof body.question !== 'string' || body.question.trim().length === 0) {
-      return c.json({ error: 'FAQ question is required' }, 400);
+      return c.json({ error: 'Question text is required' }, 400);
     }
     if (!body.answer || typeof body.answer !== 'string' || body.answer.trim().length === 0) {
-      return c.json({ error: 'FAQ answer is required' }, 400);
+      return c.json({ error: 'Answer is required' }, 400);
     }
 
-    const faq = await db.createFAQ(c.env.DB, moduleId, {
+    // Validate tags if provided
+    if (body.tags !== undefined && !Array.isArray(body.tags)) {
+      return c.json({ error: 'Tags must be an array' }, 400);
+    }
+
+    const question = await db.createQuestion(c.env.DB, moduleId, {
       question: body.question.trim(),
-      answer: body.answer.trim()
+      answer: body.answer.trim(),
+      tags: body.tags || []
     });
 
-    return c.json(faq, 201);
+    return c.json(question, 201);
   } catch (error) {
-    console.error('Error creating FAQ:', error);
-    return c.json({ error: 'Failed to create FAQ' }, 500);
+    console.error('Error creating question:', error);
+    return c.json({ error: 'Failed to create question' }, 500);
   }
 });
 
-// POST /api/modules/:moduleId/faqs/bulk - Bulk create FAQs
+// POST /api/modules/:moduleId/faqs/bulk - Bulk create questions
 app.post('/modules/:moduleId/faqs/bulk', async (c) => {
   try {
     const moduleId = parseInt(c.req.param('moduleId'));
@@ -82,84 +102,91 @@ app.post('/modules/:moduleId/faqs/bulk', async (c) => {
       return c.json({ error: 'Module not found' }, 404);
     }
 
-    const body = await c.req.json<BulkCreateFAQsRequest>();
+    const body = await c.req.json<BulkCreateQuestionsRequest>();
 
-    // Validate input
-    if (!Array.isArray(body.faqs) || body.faqs.length === 0) {
-      return c.json({ error: 'FAQs array is required and cannot be empty' }, 400);
+    // Support both 'faqs' and 'questions' keys for backwards compatibility
+    const items = (body as any).questions || (body as any).faqs;
+    if (!Array.isArray(items) || items.length === 0) {
+      return c.json({ error: 'Questions array is required and cannot be empty' }, 400);
     }
 
-    // Validate each FAQ
-    for (let i = 0; i < body.faqs.length; i++) {
-      const faq = body.faqs[i];
-      if (!faq.question || typeof faq.question !== 'string' || faq.question.trim().length === 0) {
-        return c.json({ error: `FAQ ${i + 1}: question is required` }, 400);
+    // Validate each question
+    for (let i = 0; i < items.length; i++) {
+      const q = items[i];
+      if (!q.question || typeof q.question !== 'string' || q.question.trim().length === 0) {
+        return c.json({ error: `Question ${i + 1}: question text is required` }, 400);
       }
-      if (!faq.answer || typeof faq.answer !== 'string' || faq.answer.trim().length === 0) {
-        return c.json({ error: `FAQ ${i + 1}: answer is required` }, 400);
+      if (!q.answer || typeof q.answer !== 'string' || q.answer.trim().length === 0) {
+        return c.json({ error: `Question ${i + 1}: answer is required` }, 400);
+      }
+      if (q.tags !== undefined && !Array.isArray(q.tags)) {
+        return c.json({ error: `Question ${i + 1}: tags must be an array` }, 400);
       }
     }
 
-    const faqs = await db.bulkCreateFAQs(c.env.DB, moduleId, body.faqs);
+    const questions = await db.bulkCreateQuestions(c.env.DB, moduleId, items);
 
     return c.json({
       success: true,
-      created: faqs.length,
-      faqs
+      created: questions.length,
+      questions
     }, 201);
   } catch (error) {
-    console.error('Error bulk creating FAQs:', error);
-    return c.json({ error: 'Failed to bulk create FAQs' }, 500);
+    console.error('Error bulk creating questions:', error);
+    return c.json({ error: 'Failed to bulk create questions' }, 500);
   }
 });
 
-// PUT /api/faqs/:id - Update FAQ
+// PUT /api/faqs/:id - Update question
 app.put('/faqs/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {
-      return c.json({ error: 'Invalid FAQ ID' }, 400);
+      return c.json({ error: 'Invalid question ID' }, 400);
     }
 
-    const body = await c.req.json<UpdateFAQRequest>();
+    const body = await c.req.json<UpdateQuestionRequest>();
 
     // Validate fields if provided
     if (body.question !== undefined && (typeof body.question !== 'string' || body.question.trim().length === 0)) {
-      return c.json({ error: 'FAQ question cannot be empty' }, 400);
+      return c.json({ error: 'Question text cannot be empty' }, 400);
     }
     if (body.answer !== undefined && (typeof body.answer !== 'string' || body.answer.trim().length === 0)) {
-      return c.json({ error: 'FAQ answer cannot be empty' }, 400);
+      return c.json({ error: 'Answer cannot be empty' }, 400);
+    }
+    if (body.tags !== undefined && !Array.isArray(body.tags)) {
+      return c.json({ error: 'Tags must be an array' }, 400);
     }
 
-    const faq = await db.updateFAQ(c.env.DB, id, body);
-    if (!faq) {
-      return c.json({ error: 'FAQ not found' }, 404);
+    const question = await db.updateQuestion(c.env.DB, id, body);
+    if (!question) {
+      return c.json({ error: 'Question not found' }, 404);
     }
 
-    return c.json(faq);
+    return c.json(question);
   } catch (error) {
-    console.error('Error updating FAQ:', error);
-    return c.json({ error: 'Failed to update FAQ' }, 500);
+    console.error('Error updating question:', error);
+    return c.json({ error: 'Failed to update question' }, 500);
   }
 });
 
-// DELETE /api/faqs/:id - Delete FAQ
+// DELETE /api/faqs/:id - Delete question
 app.delete('/faqs/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
     if (isNaN(id)) {
-      return c.json({ error: 'Invalid FAQ ID' }, 400);
+      return c.json({ error: 'Invalid question ID' }, 400);
     }
 
-    const deleted = await db.deleteFAQ(c.env.DB, id);
+    const deleted = await db.deleteQuestion(c.env.DB, id);
     if (!deleted) {
-      return c.json({ error: 'FAQ not found' }, 404);
+      return c.json({ error: 'Question not found' }, 404);
     }
 
-    return c.json({ success: true, message: 'FAQ deleted' });
+    return c.json({ success: true, message: 'Question deleted' });
   } catch (error) {
-    console.error('Error deleting FAQ:', error);
-    return c.json({ error: 'Failed to delete FAQ' }, 500);
+    console.error('Error deleting question:', error);
+    return c.json({ error: 'Failed to delete question' }, 500);
   }
 });
 

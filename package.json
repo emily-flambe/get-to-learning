@@ -8,11 +8,13 @@
     "deploy": "npm run build:frontend && wrangler deploy",
     "db:init": "wrangler d1 execute gtl-db --local --file=./src/db/schema.sql",
     "db:init:remote": "wrangler d1 execute gtl-db --remote --file=./src/db/schema.sql",
-    "build": "vite build && git checkout HEAD -- dist/components/",
-    "build:frontend": "vite build && git checkout HEAD -- dist/components/",
+    "build": "vite build",
+    "build:frontend": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run test:e2e"
   },
   "dependencies": {
     "hono": "^4.6.0"

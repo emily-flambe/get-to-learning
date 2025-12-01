@@ -52,6 +52,7 @@ beforeEach(async () => {
       module_id INTEGER NOT NULL,
       question TEXT NOT NULL,
       answer TEXT NOT NULL,
+      tags TEXT DEFAULT '[]',
       sort_order INTEGER DEFAULT 0,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -401,5 +402,17 @@ describe('FAQs API', () => {
       method: 'DELETE',
     });
     expect(response.status).toBe(200);
+  });
+
+  it('POST /api/modules/:id/faqs - should create a FAQ with tags', async () => {
+    const response = await SELF.fetch(`http://localhost/api/modules/${moduleId}/faqs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: 'Tagged Q?', answer: 'Tagged A', tags: ['Chapter 1', 'Intro'] }),
+    });
+    expect(response.status).toBe(201);
+    const data = await response.json() as { question: string; tags: string[] };
+    expect(data.question).toBe('Tagged Q?');
+    expect(data.tags).toEqual(['Chapter 1', 'Intro']);
   });
 });
