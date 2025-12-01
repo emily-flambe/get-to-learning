@@ -229,6 +229,14 @@ async function renderModuleContent(moduleId) {
       </div>
       ${module.description ? `<p style="margin-bottom: 2rem; color: #666;">${escapeHtml(module.description)}</p>` : ''}
 
+      ${module.summary ? `
+      <!-- Summary section -->
+      <div class="module-summary">
+        <h3>Summary</h3>
+        <div class="summary-content">${renderMarkdown(module.summary)}</div>
+      </div>
+      ` : ''}
+
       <!-- Flashcard container -->
       <div id="flashcard-container"></div>
 
@@ -476,6 +484,17 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  return escapeHtml(text)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')  // **bold**
+    .replace(/^## (.+)$/gm, '<h4>$1</h4>')  // ## headings
+    .replace(/^- \*\*([^*]+)\*\*(.*)$/gm, '<li><strong>$1</strong>$2</li>')  // - **term** description
+    .replace(/---/g, '<hr>')  // horizontal rules
+    .replace(/\n\n/g, '</p><p>')  // paragraphs
+    .replace(/\n/g, '<br>');  // line breaks
 }
 
 function showError(message) {
