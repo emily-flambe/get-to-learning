@@ -235,7 +235,7 @@ export async function deleteModule(db: D1Database, id: number): Promise<boolean>
 
 export async function getFlashcardsByModule(db: D1Database, moduleId: number): Promise<Flashcard[]> {
   const result = await db.prepare(
-    'SELECT * FROM flashcards WHERE module_id = ? ORDER BY created_at ASC'
+    'SELECT * FROM flashcards WHERE module_id = ? ORDER BY front COLLATE NOCASE ASC'
   ).bind(moduleId).all<Flashcard>();
   return result.results || [];
 }
@@ -339,7 +339,7 @@ export async function deleteFlashcard(db: D1Database, id: number): Promise<boole
 
 export async function getQuestionsByModule(db: D1Database, moduleId: number): Promise<Question[]> {
   const result = await db.prepare(
-    'SELECT * FROM faqs WHERE module_id = ? ORDER BY created_at ASC'
+    'SELECT * FROM faqs WHERE module_id = ? ORDER BY question COLLATE NOCASE ASC'
   ).bind(moduleId).all<QuestionRow>();
   return (result.results || []).map(row => ({
     ...row,
