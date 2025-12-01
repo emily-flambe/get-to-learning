@@ -51,6 +51,22 @@ dist/
     content-components.css  # Component styles
 ```
 
+## Critical: Local/Remote Database Sync
+
+**ALWAYS ensure remote deployment matches local.** This is non-negotiable.
+
+When running database migrations:
+1. Run on local: `wrangler d1 execute gtl-db --local --file=./src/db/migrations/XXX.sql`
+2. Run on remote: `wrangler d1 execute gtl-db --remote --file=./src/db/migrations/XXX.sql`
+3. **Verify** the remote data matches local before considering done
+
+**ID differences:** Local and remote databases may have different IDs for the same records. Always query remote to find correct IDs before running migrations that reference specific records.
+
+**After any deployment:**
+- Check the live site visually (don't just curl the API)
+- Verify data appears correctly on remote
+- Compare with localhost:8788 to ensure parity
+
 ## Common Tasks
 
 ```bash

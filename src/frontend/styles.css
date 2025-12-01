@@ -363,12 +363,26 @@ textarea {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+.module-summary .summary-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.module-summary .summary-header:hover h3 {
+  color: #3498db;
+}
+
 .module-summary h3 {
   color: #2c3e50;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   font-size: 1.25rem;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.module-summary h3 span {
+  font-size: 0.75rem;
 }
 
 .module-summary h4 {
@@ -380,6 +394,13 @@ textarea {
 .module-summary .summary-content {
   color: #444;
   line-height: 1.7;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.module-summary .summary-content.hidden {
+  display: none;
 }
 
 .module-summary .summary-content p {

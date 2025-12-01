@@ -232,8 +232,10 @@ async function renderModuleContent(moduleId) {
       ${module.summary ? `
       <!-- Summary section -->
       <div class="module-summary">
-        <h3>Summary</h3>
-        <div class="summary-content">${renderMarkdown(module.summary)}</div>
+        <div class="summary-header" onclick="toggleSummary()">
+          <h3><span id="summary-icon">&#9654;</span> Summary</h3>
+        </div>
+        <div id="summary-content" class="summary-content hidden">${renderMarkdown(module.summary)}</div>
       </div>
       ` : ''}
 
@@ -497,6 +499,18 @@ function renderMarkdown(text) {
     .replace(/\n/g, '<br>');  // line breaks
 }
 
+function toggleSummary() {
+  const content = document.getElementById('summary-content');
+  const icon = document.getElementById('summary-icon');
+  if (content.classList.contains('hidden')) {
+    content.classList.remove('hidden');
+    icon.innerHTML = '&#9660;';
+  } else {
+    content.classList.add('hidden');
+    icon.innerHTML = '&#9654;';
+  }
+}
+
 function showError(message) {
   const app = document.getElementById('app');
   app.innerHTML = `
@@ -540,3 +554,4 @@ window.createModule = createModule;
 window.updateModule = updateModule;
 window.deleteModule = deleteModule;
 window.hideModal = hideModal;
+window.toggleSummary = toggleSummary;
