@@ -108,7 +108,8 @@ DELETE /api/faqs/:id                     # Delete FAQ
 ```json
 {
   "question": "string (required)",
-  "answer": "string (required)"
+  "answer": "string (required)",
+  "tags": ["string"] // optional array of tags
 }
 ```
 
@@ -116,8 +117,8 @@ DELETE /api/faqs/:id                     # Delete FAQ
 ```json
 {
   "faqs": [
-    { "question": "string", "answer": "string" },
-    { "question": "string", "answer": "string" }
+    { "question": "string", "answer": "string", "tags": ["tag1", "tag2"] },
+    { "question": "string", "answer": "string", "tags": [] }
   ]
 }
 ```
@@ -140,6 +141,7 @@ CREATE TABLE modules (
   project_id INTEGER NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
+  summary TEXT,
   sort_order INTEGER DEFAULT 0,
   created_at INTEGER DEFAULT (unixepoch()),
   updated_at INTEGER DEFAULT (unixepoch()),
@@ -163,6 +165,7 @@ CREATE TABLE faqs (
   module_id INTEGER NOT NULL,
   question TEXT NOT NULL,
   answer TEXT NOT NULL,
+  tags TEXT DEFAULT '[]',
   created_at INTEGER DEFAULT (unixepoch()),
   updated_at INTEGER DEFAULT (unixepoch()),
   FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
@@ -174,6 +177,17 @@ CREATE INDEX idx_flashcards_module ON flashcards(module_id);
 CREATE INDEX idx_faqs_module ON faqs(module_id);
 ```
 
+## Delete Operations
+
+All DELETE endpoints require password authentication via the `X-Delete-Password` header:
+
+```bash
+curl -X DELETE http://localhost:8788/api/projects/1 \
+  -H "X-Delete-Password: your-password"
+```
+
+Without the correct password, DELETE requests return `401 Unauthorized`.
+
 ## Error Responses
 
 All errors return JSON with `error` field:
@@ -184,5 +198,6 @@ All errors return JSON with `error` field:
 
 Status codes:
 - `400` - Bad request (validation error)
+- `401` - Unauthorized (missing/incorrect delete password)
 - `404` - Not found
 - `500` - Internal server error

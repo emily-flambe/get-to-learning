@@ -175,9 +175,11 @@ Use inline handlers with global function calls:
 
 ```css
 /* Component prefix */
-.fc-*       /* Flashcard components */
-.faq-*      /* FAQ components */
-.review-*   /* Review mode components */
+.fc-*              /* Flashcard components */
+.faq-*             /* FAQ components */
+.review-*          /* Review mode components */
+.module-selector*  /* Module selection UI */
+.module-checkbox*  /* Module checkbox items */
 
 /* State modifiers */
 .selected   /* Selected state */
