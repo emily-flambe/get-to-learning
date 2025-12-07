@@ -55,15 +55,52 @@ dist/
 
 **ALWAYS ensure remote deployment matches local.** This is non-negotiable.
 
-When running database migrations:
-1. Run on local: `wrangler d1 execute gtl-db --local --file=./src/db/migrations/XXX.sql`
-2. Run on remote: `wrangler d1 execute gtl-db --remote --file=./src/db/migrations/XXX.sql`
-3. **Verify** the remote data matches local before considering done
+### ID Mismatch Problem
 
-**ID differences:** Local and remote databases may have different IDs for the same records. Always query remote to find correct IDs before running migrations that reference specific records.
+Local and remote D1 databases have **different auto-increment IDs** for the same logical records. For example:
+- Local: Project "Database Internals" might be ID 4
+- Remote: Same project might be ID 2
 
-**After any deployment:**
-- Check the live site visually (don't just curl the API)
+This causes problems when:
+- Migrations reference specific IDs
+- localStorage caches module IDs from one environment
+- API calls use hardcoded IDs
+
+### Syncing Data to Remote
+
+When you need to sync local content to remote:
+
+1. **Query remote first** to find the correct project ID:
+   ```bash
+   wrangler d1 execute gtl-db --remote --command="SELECT id, name FROM projects"
+   ```
+
+2. **Generate migration SQL** that uses subqueries instead of hardcoded IDs:
+   ```sql
+   -- Use sort_order or other unique fields to reference modules
+   INSERT INTO flashcards (module_id, front, back)
+   VALUES ((SELECT id FROM modules WHERE project_id = 2 AND sort_order = 1), 'term', 'definition');
+   ```
+
+3. **Run migration on remote:**
+   ```bash
+   wrangler d1 execute gtl-db --remote --file=./src/db/migrations/XXX.sql
+   ```
+
+4. **Deploy code changes:**
+   ```bash
+   npm run deploy
+   ```
+
+### Frontend Caching
+
+The frontend stores selected module IDs in localStorage (`gtl_selected_modules_{projectId}`). After database migrations that change module IDs, users may have stale cached IDs.
+
+**The code handles this** by filtering cached IDs against valid modules from the API (see `renderProjectContent` in app.js). This prevents 400 errors from invalid module IDs.
+
+### After any deployment:
+- Test the live site with Playwright or manually in browser
+- Clear localStorage if you see 400 errors with invalid module IDs
 - Verify data appears correctly on remote
 - Compare with localhost:8788 to ensure parity
 

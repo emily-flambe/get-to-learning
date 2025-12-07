@@ -167,13 +167,14 @@ async function renderProjectContent(projectId) {
     state.modules = project.modules || [];
 
     // Load selected modules from localStorage, default to all if none stored
-    let selectedModules = getSelectedModules(projectId);
+    // Filter out any invalid module IDs that no longer exist (e.g., after migration)
+    const validModuleIds = new Set(state.modules.map(m => m.id));
+    let selectedModules = getSelectedModules(projectId).filter(id => validModuleIds.has(id));
+
     if (selectedModules.length === 0 && state.modules.length > 0) {
       selectedModules = state.modules.map(m => m.id);
-      setSelectedModules(projectId, selectedModules);
-    } else {
-      state.selectedModules = selectedModules;
     }
+    setSelectedModules(projectId, selectedModules);
 
     breadcrumb.innerHTML = `
       <a href="#/" onclick="navigate('/')">Projects</a>
@@ -202,14 +203,16 @@ async function renderProjectContent(projectId) {
       `;
     } else {
       html += renderModuleSelector();
+      html += '<div id="summary-container"></div>';
       html += '<div id="flashcard-container"></div>';
       html += '<div id="faq-container"></div>';
     }
 
     app.innerHTML = html;
 
-    // Load flashcards and FAQs if modules are selected
+    // Load summaries, flashcards and FAQs if modules are selected
     if (state.selectedModules.length > 0) {
+      renderSummaries();
       if (typeof FlashcardList !== 'undefined') {
         FlashcardList.loadMultiple(projectId, state.selectedModules);
       }
@@ -242,6 +245,9 @@ function renderModuleSelector() {
     html += '<div class="module-checkbox' + (isSelected ? ' selected' : '') + '" onclick="toggleModule(' + module.id + ')">';
     html += '<input type="checkbox"' + (isSelected ? ' checked' : '') + ' onclick="event.stopPropagation(); toggleModule(' + module.id + ')">';
     html += '<label>' + escapeHtml(module.name) + '</label>';
+    html += '<button class="module-edit-btn" onclick="event.stopPropagation(); showEditModuleSummaryForm(' + module.id + ')" title="Edit summary">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+    html += '</button>';
     html += '</div>';
   });
 
@@ -276,6 +282,38 @@ function toggleAllModules() {
   reloadContent();
 }
 
+// Render summaries for selected modules
+function renderSummaries() {
+  const container = document.getElementById('summary-container');
+  if (!container) return;
+
+  // Get selected modules that have summaries
+  const selectedWithSummaries = state.modules
+    .filter(m => state.selectedModules.includes(m.id) && m.summary)
+    .sort((a, b) => a.sort_order - b.sort_order);
+
+  if (selectedWithSummaries.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = '<div class="module-summary">';
+  html += '<div class="summary-header" onclick="toggleSummary()">';
+  html += '<h3><span id="summary-icon">&#9654;</span> Summary</h3>';
+  html += '</div>';
+  html += '<div id="summary-content" class="summary-content hidden">';
+
+  selectedWithSummaries.forEach((module, index) => {
+    if (selectedWithSummaries.length > 1) {
+      html += '<h4 style="color: #2563eb; margin-top: ' + (index > 0 ? '2rem' : '0') + ';">' + escapeHtml(module.name) + '</h4>';
+    }
+    html += renderMarkdown(module.summary);
+  });
+
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
 // Reload content after module selection change
 function reloadContent() {
   // Re-render the module selector to update checkboxes
@@ -284,8 +322,9 @@ function reloadContent() {
     selector.outerHTML = renderModuleSelector();
   }
 
-  // Reload flashcards and FAQs
+  // Reload summaries, flashcards and FAQs
   if (state.selectedModules.length > 0) {
+    renderSummaries();
     if (typeof FlashcardList !== 'undefined') {
       FlashcardList.loadMultiple(state.currentProject, state.selectedModules);
     }
@@ -294,8 +333,10 @@ function reloadContent() {
     }
   } else {
     // Clear containers if no modules selected
+    const summaryContainer = document.getElementById('summary-container');
     const fcContainer = document.getElementById('flashcard-container');
     const faqContainer = document.getElementById('faq-container');
+    if (summaryContainer) summaryContainer.innerHTML = '';
     if (fcContainer) fcContainer.innerHTML = '';
     if (faqContainer) faqContainer.innerHTML = '';
   }
@@ -608,6 +649,53 @@ async function updateModule(event, moduleId) {
   }
 }
 
+function showEditModuleSummaryForm(moduleId) {
+  const module = state.modules.find(m => m.id === moduleId);
+  if (!module) return;
+
+  showModal('Edit Summary - ' + escapeHtml(module.name), `
+    <form onsubmit="updateModuleSummary(event, ${moduleId})">
+      <div class="form-group">
+        <label for="module-summary">Summary</label>
+        <textarea id="module-summary" rows="15" placeholder="Use markdown-style formatting:
+## Section Heading
+**Bold text**
+- Bullet points">${module.summary ? escapeHtml(module.summary) : ''}</textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" onclick="hideModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  `);
+}
+
+async function updateModuleSummary(event, moduleId) {
+  event.preventDefault();
+
+  const summary = document.getElementById('module-summary').value;
+
+  try {
+    await fetchAPI(`/modules/${moduleId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ summary: summary || undefined })
+    });
+
+    hideModal();
+
+    // Update the module in state
+    const module = state.modules.find(m => m.id === moduleId);
+    if (module) {
+      module.summary = summary;
+    }
+
+    // Refresh the summaries display if visible
+    renderSummaries();
+  } catch (error) {
+    showError('Failed to update summary: ' + error.message);
+  }
+}
+
 async function deleteModule(moduleId) {
   const password = prompt('Enter password to delete this module (this will also delete all flashcards and FAQs):');
   if (!password) return;
@@ -692,8 +780,10 @@ window.updateProject = updateProject;
 window.deleteProject = deleteProject;
 window.showCreateModuleForm = showCreateModuleForm;
 window.showEditModuleForm = showEditModuleForm;
+window.showEditModuleSummaryForm = showEditModuleSummaryForm;
 window.createModule = createModule;
 window.updateModule = updateModule;
+window.updateModuleSummary = updateModuleSummary;
 window.deleteModule = deleteModule;
 window.hideModal = hideModal;
 window.toggleSummary = toggleSummary;

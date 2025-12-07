@@ -13,6 +13,7 @@ export interface Module {
   project_id: number;
   name: string;
   description: string | null;
+  summary: string | null;
   sort_order: number;
   created_at: number;
   updated_at: number;
@@ -61,6 +62,7 @@ export interface CreateModuleRequest {
 export interface UpdateModuleRequest {
   name?: string;
   description?: string;
+  summary?: string;
   sort_order?: number;
 }
 

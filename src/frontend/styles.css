@@ -484,6 +484,30 @@ textarea {
   margin: 0;
 }
 
+.module-checkbox label {
+  font-size: 0.9rem;
+  color: #333;
+  flex: 1;
+}
+
+.module-edit-btn {
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.module-edit-btn:hover {
+  background: #f0f0f0;
+  color: #3498db;
+}
+
 .module-checkbox-name {
   font-size: 0.9rem;
   color: #333;

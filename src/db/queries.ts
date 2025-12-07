@@ -198,6 +198,11 @@ export async function updateModule(db: D1Database, id: number, data: UpdateModul
     values.push(data.description ?? null);
   }
 
+  if (data.summary !== undefined) {
+    updates.push('summary = ?');
+    values.push(data.summary ?? null);
+  }
+
   if (data.sort_order !== undefined) {
     updates.push('sort_order = ?');
     values.push(data.sort_order);
