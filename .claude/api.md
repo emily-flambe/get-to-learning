@@ -12,11 +12,13 @@ Response: { status: "ok", timestamp: string, message: string }
 ## Projects
 
 ```
-GET    /api/projects           # List all projects
-GET    /api/projects/:id       # Get project by ID
-POST   /api/projects           # Create project
-PUT    /api/projects/:id       # Update project
-DELETE /api/projects/:id       # Delete project (cascades to modules)
+GET    /api/projects                           # List all projects
+GET    /api/projects/:id                       # Get project by ID
+POST   /api/projects                           # Create project
+PUT    /api/projects/:id                       # Update project
+DELETE /api/projects/:id                       # Delete project (cascades to modules)
+GET    /api/projects/:projectId/flashcards     # Get flashcards from project modules
+GET    /api/projects/:projectId/faqs           # Get FAQs from project modules
 ```
 
 **Create/Update Body:**
@@ -26,6 +28,24 @@ DELETE /api/projects/:id       # Delete project (cascades to modules)
   "description": "string (optional)"
 }
 ```
+
+**Multi-Module Content Endpoints:**
+
+```
+GET /api/projects/:projectId/flashcards?modules=1,2,3
+```
+- Returns flashcards from specified modules within the project
+- Query param `modules` is optional - omit to get content from all modules in project
+- Returns flashcards sorted alphabetically by front text (case-insensitive)
+- Validates that project exists and all specified modules belong to the project
+
+```
+GET /api/projects/:projectId/faqs?modules=1,2,3
+```
+- Returns FAQs from specified modules within the project
+- Query param `modules` is optional - omit to get content from all modules in project
+- Returns FAQs sorted alphabetically by question text (case-insensitive)
+- Validates that project exists and all specified modules belong to the project
 
 ## Modules
 

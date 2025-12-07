@@ -240,6 +240,15 @@ export async function getFlashcardsByModule(db: D1Database, moduleId: number): P
   return result.results || [];
 }
 
+export async function getFlashcardsByModules(db: D1Database, moduleIds: number[]): Promise<Flashcard[]> {
+  if (moduleIds.length === 0) return [];
+  const placeholders = moduleIds.map(() => '?').join(',');
+  const result = await db.prepare(
+    `SELECT * FROM flashcards WHERE module_id IN (${placeholders}) ORDER BY front COLLATE NOCASE ASC`
+  ).bind(...moduleIds).all<Flashcard>();
+  return result.results || [];
+}
+
 export async function getFlashcardById(db: D1Database, id: number): Promise<Flashcard | null> {
   const result = await db.prepare(
     'SELECT * FROM flashcards WHERE id = ?'
@@ -341,6 +350,18 @@ export async function getQuestionsByModule(db: D1Database, moduleId: number): Pr
   const result = await db.prepare(
     'SELECT * FROM faqs WHERE module_id = ? ORDER BY question COLLATE NOCASE ASC'
   ).bind(moduleId).all<QuestionRow>();
+  return (result.results || []).map(row => ({
+    ...row,
+    tags: parseTags(row.tags)
+  }));
+}
+
+export async function getQuestionsByModules(db: D1Database, moduleIds: number[]): Promise<Question[]> {
+  if (moduleIds.length === 0) return [];
+  const placeholders = moduleIds.map(() => '?').join(',');
+  const result = await db.prepare(
+    `SELECT * FROM faqs WHERE module_id IN (${placeholders}) ORDER BY question COLLATE NOCASE ASC`
+  ).bind(...moduleIds).all<QuestionRow>();
   return (result.results || []).map(row => ({
     ...row,
     tags: parseTags(row.tags)

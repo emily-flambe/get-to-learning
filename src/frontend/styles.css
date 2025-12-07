@@ -25,6 +25,12 @@ header h1 {
   font-size: 1.75rem;
   font-weight: 600;
   color: #2c3e50;
+  margin-bottom: 0.25rem;
+}
+
+header .subtitle {
+  font-size: 0.9rem;
+  color: #666;
   margin-bottom: 0.5rem;
 }
 
@@ -420,4 +426,97 @@ textarea {
 
 .module-summary .summary-content strong {
   color: #2c3e50;
+}
+
+/* Module Selector */
+.module-selector {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.module-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.module-selector-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.module-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.module-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.module-checkbox:hover {
+  border-color: #3498db;
+  background: #f0f7ff;
+}
+
+.module-checkbox.selected {
+  background: #e7f1ff;
+  border-color: #3498db;
+}
+
+.module-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+.module-checkbox-name {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.module-checkbox-delete {
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.7rem;
+  background: transparent;
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.module-checkbox-delete:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .module-selector-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .module-checkboxes {
+    flex-direction: column;
+  }
+
+  .module-checkbox {
+    width: 100%;
+  }
 }

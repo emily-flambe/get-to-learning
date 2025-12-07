@@ -43,7 +43,7 @@ src/
 
 dist/
   index.html        # Main SPA entry
-  review.html       # Flashcard review mode
+  app.js            # Hash router and state management
   components/
     FlashcardList.js     # Flashcard chip display + detail panel
     FAQList.js           # FAQ accordion display

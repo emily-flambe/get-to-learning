@@ -58,12 +58,31 @@ src/index.ts              # App entry, middleware, route mounting
 ```
 dist/index.html           # Main SPA shell with hash router
     |
+    +-- app.js            # Router and state management
+    |
     +-- components/
         +-- FlashcardList.js  # Chip display + detail panel
         +-- FAQList.js        # Accordion Q&A display
         +-- ReviewMode.js     # Full-screen study mode
         +-- content-components.css
 ```
+
+## Routing
+
+Hash-based routing with the following views:
+
+```
+#/                                    # Home - lists all projects
+#/projects/{id}                       # Project content view - module selector + flashcards + FAQs
+#/projects/{id}/review                # Multi-module review mode
+#/modules/{id}                        # Legacy redirect - looks up project_id and redirects to project view
+```
+
+**Navigation Flow:**
+1. User selects a project from home page
+2. Project page displays module checkboxes, flashcards, and FAQs from selected modules
+3. Module selection is persisted in localStorage per project
+4. User can start review mode from flashcard section (reviews all selected modules)
 
 ## Key Design Decisions
 

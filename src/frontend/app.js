@@ -5,7 +5,8 @@ let state = {
   currentProject: null,
   currentModule: null,
   projects: [],
-  modules: []
+  modules: [],
+  selectedModules: []
 };
 
 // API helpers
@@ -23,6 +24,21 @@ async function fetchAPI(endpoint, options = {}) {
   }
 
   return response.json();
+}
+
+// LocalStorage helpers for module selection
+function getSelectedModules(projectId) {
+  try {
+    const stored = localStorage.getItem('gtl_selected_modules_' + projectId);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setSelectedModules(projectId, moduleIds) {
+  localStorage.setItem('gtl_selected_modules_' + projectId, JSON.stringify(moduleIds));
+  state.selectedModules = moduleIds;
 }
 
 // Router
@@ -47,7 +63,11 @@ function parseRoute(route) {
   }
 
   if (parts[0] === 'projects' && parts.length === 2) {
-    return { view: 'modules', projectId: parseInt(parts[1]) };
+    return { view: 'project-content', projectId: parseInt(parts[1]) };
+  }
+
+  if (parts[0] === 'projects' && parts.length === 3 && parts[2] === 'review') {
+    return { view: 'project-review', projectId: parseInt(parts[1]) };
   }
 
   if (parts[0] === 'modules' && parts.length === 2) {
@@ -70,8 +90,10 @@ async function handleRoute() {
   try {
     if (parsed.view === 'projects') {
       await renderProjectList();
-    } else if (parsed.view === 'modules') {
-      await renderModuleList(parsed.projectId);
+    } else if (parsed.view === 'project-content') {
+      await renderProjectContent(parsed.projectId);
+    } else if (parsed.view === 'project-review') {
+      await startProjectReviewMode(parsed.projectId);
     } else if (parsed.view === 'content') {
       await renderModuleContent(parsed.moduleId);
     } else if (parsed.view === 'review') {
@@ -132,17 +154,26 @@ async function renderProjectList() {
   }
 }
 
-// Module List View
-async function renderModuleList(projectId) {
+// Project Content View with Module Selector
+async function renderProjectContent(projectId) {
   const app = document.getElementById('app');
   const breadcrumb = document.getElementById('breadcrumb');
 
   state.currentProject = projectId;
-  app.innerHTML = '<div class="loading">Loading modules...</div>';
+  app.innerHTML = '<div class="loading">Loading project content...</div>';
 
   try {
     const project = await fetchAPI(`/projects/${projectId}`);
     state.modules = project.modules || [];
+
+    // Load selected modules from localStorage, default to all if none stored
+    let selectedModules = getSelectedModules(projectId);
+    if (selectedModules.length === 0 && state.modules.length > 0) {
+      selectedModules = state.modules.map(m => m.id);
+      setSelectedModules(projectId, selectedModules);
+    } else {
+      state.selectedModules = selectedModules;
+    }
 
     breadcrumb.innerHTML = `
       <a href="#/" onclick="navigate('/')">Projects</a>
@@ -159,7 +190,7 @@ async function renderModuleList(projectId) {
     `;
 
     if (project.description) {
-      html += `<p style="margin-bottom: 2rem; color: #666;">${escapeHtml(project.description)}</p>`;
+      html += '<p style="margin-bottom: 2rem; color: #666;">' + escapeHtml(project.description) + '</p>';
     }
 
     if (state.modules.length === 0) {
@@ -170,24 +201,103 @@ async function renderModuleList(projectId) {
         </div>
       `;
     } else {
-      html += '<div class="list-view">';
-      state.modules.forEach(module => {
-        html += `
-          <div class="list-item" onclick="navigate('/modules/${module.id}')">
-            <h3>${escapeHtml(module.name)}</h3>
-            ${module.description ? `<p>${escapeHtml(module.description)}</p>` : ''}
-            <div class="list-item-actions">
-              <button class="btn-danger btn-small" onclick="event.stopPropagation(); deleteModule(${module.id})">Delete</button>
-            </div>
-          </div>
-        `;
-      });
-      html += '</div>';
+      html += renderModuleSelector();
+      html += '<div id="flashcard-container"></div>';
+      html += '<div id="faq-container"></div>';
     }
 
     app.innerHTML = html;
+
+    // Load flashcards and FAQs if modules are selected
+    if (state.selectedModules.length > 0) {
+      if (typeof FlashcardList !== 'undefined') {
+        FlashcardList.loadMultiple(projectId, state.selectedModules);
+      }
+      if (typeof FAQList !== 'undefined') {
+        FAQList.loadMultiple(projectId, state.selectedModules);
+      }
+    }
   } catch (error) {
-    showError('Failed to load modules: ' + error.message);
+    showError('Failed to load project content: ' + error.message);
+  }
+}
+
+// Module Selector UI
+function renderModuleSelector() {
+  if (state.modules.length === 0) return '';
+
+  const allSelected = state.selectedModules.length === state.modules.length;
+
+  let html = '<div class="module-selector">';
+  html += '<div class="module-selector-header">';
+  html += '<h3>Modules</h3>';
+  html += '<button class="btn-secondary btn-small" onclick="toggleAllModules()">';
+  html += allSelected ? 'Deselect All' : 'Select All';
+  html += '</button>';
+  html += '</div>';
+  html += '<div class="module-checkboxes">';
+
+  state.modules.forEach(module => {
+    const isSelected = state.selectedModules.includes(module.id);
+    html += '<div class="module-checkbox' + (isSelected ? ' selected' : '') + '" onclick="toggleModule(' + module.id + ')">';
+    html += '<input type="checkbox"' + (isSelected ? ' checked' : '') + ' onclick="event.stopPropagation(); toggleModule(' + module.id + ')">';
+    html += '<label>' + escapeHtml(module.name) + '</label>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+  html += '</div>';
+
+  return html;
+}
+
+// Toggle individual module selection
+function toggleModule(moduleId) {
+  const index = state.selectedModules.indexOf(moduleId);
+  if (index > -1) {
+    state.selectedModules.splice(index, 1);
+  } else {
+    state.selectedModules.push(moduleId);
+  }
+
+  setSelectedModules(state.currentProject, state.selectedModules);
+  reloadContent();
+}
+
+// Toggle all modules
+function toggleAllModules() {
+  if (state.selectedModules.length === state.modules.length) {
+    state.selectedModules = [];
+  } else {
+    state.selectedModules = state.modules.map(m => m.id);
+  }
+
+  setSelectedModules(state.currentProject, state.selectedModules);
+  reloadContent();
+}
+
+// Reload content after module selection change
+function reloadContent() {
+  // Re-render the module selector to update checkboxes
+  const selector = document.querySelector('.module-selector');
+  if (selector) {
+    selector.outerHTML = renderModuleSelector();
+  }
+
+  // Reload flashcards and FAQs
+  if (state.selectedModules.length > 0) {
+    if (typeof FlashcardList !== 'undefined') {
+      FlashcardList.loadMultiple(state.currentProject, state.selectedModules);
+    }
+    if (typeof FAQList !== 'undefined') {
+      FAQList.loadMultiple(state.currentProject, state.selectedModules);
+    }
+  } else {
+    // Clear containers if no modules selected
+    const fcContainer = document.getElementById('flashcard-container');
+    const faqContainer = document.getElementById('faq-container');
+    if (fcContainer) fcContainer.innerHTML = '';
+    if (faqContainer) faqContainer.innerHTML = '';
   }
 }
 
@@ -257,7 +367,7 @@ async function renderModuleContent(moduleId) {
   }
 }
 
-// Review Mode
+// Review Mode (single module - legacy)
 async function startReviewMode(moduleId) {
   try {
     const flashcards = await fetchAPI(`/modules/${moduleId}/flashcards`);
@@ -268,6 +378,35 @@ async function startReviewMode(moduleId) {
     }
     if (typeof ReviewMode !== 'undefined') {
       ReviewMode.start(moduleId, flashcards);
+    } else {
+      showError('Review mode not available');
+    }
+  } catch (error) {
+    showError('Failed to start review: ' + error.message);
+  }
+}
+
+// Project Review Mode (multi-module)
+async function startProjectReviewMode(projectId) {
+  try {
+    const selectedModules = getSelectedModules(projectId);
+    if (selectedModules.length === 0) {
+      showError('No modules selected for review');
+      navigate(`/projects/${projectId}`);
+      return;
+    }
+
+    const moduleParams = selectedModules.join(',');
+    const flashcards = await fetchAPI(`/projects/${projectId}/flashcards?modules=${moduleParams}`);
+
+    if (flashcards.length === 0) {
+      showError('No flashcards to review in selected modules');
+      navigate(`/projects/${projectId}`);
+      return;
+    }
+
+    if (typeof ReviewMode !== 'undefined') {
+      ReviewMode.startWithProject(projectId, flashcards);
     } else {
       showError('Review mode not available');
     }
@@ -558,3 +697,5 @@ window.updateModule = updateModule;
 window.deleteModule = deleteModule;
 window.hideModal = hideModal;
 window.toggleSummary = toggleSummary;
+window.toggleModule = toggleModule;
+window.toggleAllModules = toggleAllModules;

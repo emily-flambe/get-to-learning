@@ -20,6 +20,8 @@
   }
 
   let currentModuleId = null, flashcards = [], editingFlashcardId = null, selectedFlashcardId = null;
+  let currentProjectId = null;
+  let currentModuleIds = [];
 
   function renderFlashcardChip(fc) {
     const isSelected = fc.id === selectedFlashcardId;
@@ -63,8 +65,19 @@
   function renderFlashcardForm() {
     const isEditing = editingFlashcardId > 0;
     const flashcard = isEditing ? flashcards.find(fc => fc.id === editingFlashcardId) : { front: '', back: '' };
+    const inMultiModuleMode = !isEditing && currentModuleIds.length > 1;
+    let moduleDropdown = '';
+    if (inMultiModuleMode && window.state && window.state.modules) {
+      const filteredModules = window.state.modules.filter(m => currentModuleIds.includes(m.id));
+      moduleDropdown = '<div class="form-group"><label for="flashcard-module">Module:</label>' +
+        '<select id="flashcard-module" name="module_id" required>' +
+        '<option value="">Select module...</option>' +
+        filteredModules.map(m => '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>').join('') +
+        '</select></div>';
+    }
     return '<div class="flashcard-form"><h4>' + (isEditing ? 'Edit' : 'Create') + ' Flashcard</h4>' +
       '<form onsubmit="FlashcardList.handleSubmit(event); return false;">' +
+      moduleDropdown +
       '<div class="form-group"><label for="flashcard-front">Front (Question):</label>' +
       '<textarea id="flashcard-front" name="front" required rows="3" placeholder="Enter the question or prompt...">' +
       (isEditing ? escapeHtml(flashcard.front) : '') + '</textarea></div>' +
@@ -85,6 +98,22 @@
       render();
     } catch (error) {
       showError(error.message);
+    }
+  }
+
+  async function loadFlashcardsMultiple(projectId, moduleIds) {
+    try {
+      const modulesParam = moduleIds.length > 0 ? '?modules=' + moduleIds.join(',') : '';
+      const response = await fetch(API_BASE + '/projects/' + projectId + '/flashcards' + modulesParam);
+      if (!response.ok) throw new Error('Failed to load flashcards');
+      flashcards = await response.json();
+      currentProjectId = projectId;
+      currentModuleIds = moduleIds;
+      currentModuleId = null;
+      selectedFlashcardId = null;
+      render();
+    } catch (error) {
+      console.error('Error loading flashcards:', error);
     }
   }
 
@@ -109,8 +138,13 @@
     if (!data.front || !data.back) { showError('Both front and back are required'); return; }
     try {
       const isEditing = editingFlashcardId > 0;
+      let targetModuleId = currentModuleId;
+      if (!isEditing && currentModuleIds.length > 1) {
+        targetModuleId = parseInt(formData.get('module_id'), 10);
+        if (!targetModuleId) { showError('Please select a module'); return; }
+      }
       const url = isEditing ? API_BASE + '/flashcards/' + editingFlashcardId :
-        API_BASE + '/modules/' + currentModuleId + '/flashcards';
+        API_BASE + '/modules/' + targetModuleId + '/flashcards';
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,7 +152,11 @@
       });
       if (!response.ok) throw new Error(isEditing ? 'Failed to update flashcard' : 'Failed to create flashcard');
       editingFlashcardId = null;
-      await loadFlashcards(currentModuleId);
+      if (currentProjectId) {
+        await loadFlashcardsMultiple(currentProjectId, currentModuleIds);
+      } else {
+        await loadFlashcards(currentModuleId);
+      }
     } catch (error) {
       showError(error.message);
     }
@@ -134,14 +172,22 @@
       });
       if (!response.ok) throw new Error('Failed to delete flashcard');
       selectedFlashcardId = null;
-      await loadFlashcards(currentModuleId);
+      if (currentProjectId) {
+        await loadFlashcardsMultiple(currentProjectId, currentModuleIds);
+      } else {
+        await loadFlashcards(currentModuleId);
+      }
     } catch (error) {
       showError(error.message);
     }
   }
 
   function startReview() {
-    window.location.href = '/review.html?module=' + currentModuleId;
+    if (currentProjectId) {
+      window.location.hash = '#/projects/' + currentProjectId + '/review';
+    } else {
+      window.location.href = '/review.html?module=' + currentModuleId;
+    }
   }
 
   function render(containerId) {
@@ -150,7 +196,7 @@
   }
 
   window.FlashcardList = {
-    load: loadFlashcards, render, selectFlashcard, closeDetail, showCreateForm,
+    load: loadFlashcards, loadMultiple: loadFlashcardsMultiple, render, selectFlashcard, closeDetail, showCreateForm,
     editFlashcard, deleteFlashcard, cancelForm, handleSubmit,
     startReview, renderHtml: renderFlashcardList
   };

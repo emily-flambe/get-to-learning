@@ -10,7 +10,16 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
-  let flashcards = [], currentIndex = 0, showingAnswer = false, moduleId = null, containerId = 'app';
+  let flashcards = [], currentIndex = 0, showingAnswer = false, moduleId = null, projectId = null, containerId = 'app';
+
+  function shuffleArray(array) {
+    const shuffled = array.slice();
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
 
   function renderReview() {
     if (flashcards.length === 0) {
@@ -41,8 +50,19 @@
   }
 
   function start(modId, cards, container) {
+    projectId = null;
     moduleId = modId;
     flashcards = cards || [];
+    currentIndex = 0;
+    showingAnswer = false;
+    containerId = container || 'app';
+    render();
+  }
+
+  function startWithProject(projId, cards, container) {
+    projectId = projId;
+    moduleId = null;
+    flashcards = shuffleArray(cards.slice());
     currentIndex = 0;
     showingAnswer = false;
     containerId = container || 'app';
@@ -84,7 +104,13 @@
   }
 
   function exit() {
-    window.location.href = '/#/modules/' + moduleId;
+    if (projectId) {
+      window.location.hash = '/projects/' + projectId;
+    } else if (moduleId) {
+      window.location.hash = '/modules/' + moduleId;
+    } else {
+      window.location.hash = '/';
+    }
   }
 
   function reset() {
@@ -100,7 +126,7 @@
   }
 
   window.ReviewMode = {
-    start, showAnswer, nextCard, previousCard, skipCard,
+    start, startWithProject, showAnswer, nextCard, previousCard, skipCard,
     exit, reset, render, renderHtml: renderReview
   };
 })();

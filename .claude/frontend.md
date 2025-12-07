@@ -41,23 +41,31 @@ The vite build process copies `src/frontend/components/` to `dist/components/` v
 
 ## FlashcardList.js
 
-Displays flashcards as compact chips with a detail panel below.
+Displays flashcards as compact chips with a detail panel below. Supports both single-module and multi-module loading.
 
 **State:**
 - `flashcards` - Array of flashcard objects
-- `currentModuleId` - Active module ID
+- `currentModuleId` - Active module ID (for single-module mode)
+- `currentProjectId` - Active project ID (for multi-module mode)
+- `currentModuleIds` - Array of module IDs (for multi-module mode)
 - `selectedFlashcardId` - Currently selected chip (shows detail panel)
 - `editingFlashcardId` - ID of flashcard being edited (0 for new)
 
 **Public Methods:**
-- `FlashcardList.load(moduleId)` - Load flashcards for module
+- `FlashcardList.load(moduleId)` - Load flashcards for single module
+- `FlashcardList.loadMultiple(projectId, moduleIds)` - Load flashcards from multiple modules
 - `FlashcardList.render(containerId)` - Render to container
 - `FlashcardList.selectFlashcard(id)` - Select/deselect a chip
 - `FlashcardList.closeDetail()` - Close detail panel
-- `FlashcardList.showCreateForm()` - Show create form
+- `FlashcardList.showCreateForm()` - Show create form (with module selector in multi-module mode)
 - `FlashcardList.editFlashcard(id)` - Show edit form
 - `FlashcardList.deleteFlashcard(id)` - Delete with confirmation
-- `FlashcardList.startReview()` - Navigate to review mode
+- `FlashcardList.startReview()` - Navigate to review mode (project-based if in multi-module mode)
+
+**Multi-Module Features:**
+- When `loadMultiple()` is used, create form displays a module selector dropdown
+- Module selector populated from `window.state.modules`
+- Start Review navigates to `#/projects/{id}/review` instead of module-based review
 
 **UI Elements:**
 - `.fc-chips` - Container for all chip elements
@@ -67,22 +75,29 @@ Displays flashcards as compact chips with a detail panel below.
 
 ## FAQList.js (Questions with Tags)
 
-Displays Questions in an accordion format with tag filtering.
+Displays Questions in an accordion format with tag filtering. Supports both single-module and multi-module loading.
 
 **State:**
 - `questions` - Array of question objects
-- `currentModuleId` - Active module ID
+- `currentModuleId` - Active module ID (for single-module mode)
+- `currentProjectId` - Active project ID (for multi-module mode)
+- `currentModuleIds` - Array of module IDs (for multi-module mode)
 - `editingQuestionId` - ID of question being edited
 - `selectedTag` - Currently selected tag filter (null = show all)
 
 **Public Methods:**
-- `FAQList.load(moduleId)` - Load questions for module
+- `FAQList.load(moduleId)` - Load questions for single module
+- `FAQList.loadMultiple(projectId, moduleIds)` - Load questions from multiple modules
 - `FAQList.render(containerId)` - Render to container
 - `FAQList.toggleQuestion(id)` - Expand/collapse question
 - `FAQList.filterByTag(tag)` - Filter by tag (null to clear)
-- `FAQList.showCreateForm()` - Show create form
+- `FAQList.showCreateForm()` - Show create form (with module selector in multi-module mode)
 - `FAQList.editQuestion(id)` - Show edit form
 - `FAQList.deleteQuestion(id)` - Delete with confirmation
+
+**Multi-Module Features:**
+- When `loadMultiple()` is used, create form displays a module selector dropdown
+- Module selector populated from `window.state.modules`
 
 **UI Elements:**
 - `.faq-list` - Container for question items
@@ -96,20 +111,27 @@ Displays Questions in an accordion format with tag filtering.
 
 ## ReviewMode.js
 
-Full-screen flashcard study mode.
+Full-screen flashcard study mode. Supports both single-module and multi-module review sessions.
 
 **State:**
 - `flashcards` - Shuffled array for review
 - `currentIndex` - Current card position
 - `isFlipped` - Whether answer is shown
-- `moduleId` - Source module ID
+- `moduleId` - Source module ID (for single-module mode)
+- `projectId` - Source project ID (for multi-module mode)
 
 **Public Methods:**
-- `ReviewMode.start(moduleId)` - Begin review session
+- `ReviewMode.start(moduleId)` - Begin single-module review session
+- `ReviewMode.startWithProject(projectId, cards, container)` - Begin multi-module review session
 - `ReviewMode.flip()` - Show answer
 - `ReviewMode.next()` - Go to next card
 - `ReviewMode.prev()` - Go to previous card
-- `ReviewMode.exit()` - Return to module page
+- `ReviewMode.exit()` - Return to source page (project or module based on context)
+
+**Multi-Module Features:**
+- `startWithProject()` sets `projectId` instead of `moduleId`
+- Exit returns to `#/projects/{projectId}` when in project-based review mode
+- Exit returns to `#/modules/{moduleId}` when in module-based review mode
 
 ## CSS Classes
 
@@ -117,6 +139,14 @@ Full-screen flashcard study mode.
 - `.flashcard-section`, `.faq-section` - Section containers
 - `.section-header` - Header with title and actions
 - `.section-actions` - Button group
+
+### Module Selector
+- `.module-selector` - Container for module selection UI
+- `.module-selector-header` - Header row with title and "Select All" button
+- `.module-checkboxes` - Flex container for checkbox items
+- `.module-checkbox` - Individual checkbox wrapper with label
+- `.module-checkbox.selected` - Selected state styling
+- Responsive: Wraps on mobile, inline on larger screens
 
 ### Buttons
 - `button` - Base button style

@@ -27,6 +27,8 @@
   }
 
   let currentModuleId = null, questions = [], editingQuestionId = null, selectedTag = null;
+  let currentProjectId = null;
+  let currentModuleIds = [];
 
   function getAllTags() {
     const tagSet = new Set();
@@ -99,8 +101,19 @@
     const isEditing = editingQuestionId > 0;
     const question = isEditing ? questions.find(q => q.id === editingQuestionId) : { question: '', answer: '', tags: [] };
     const tagsStr = question.tags ? question.tags.join(', ') : '';
+    const inMultiModuleMode = !isEditing && currentModuleIds.length > 1;
+    let moduleDropdown = '';
+    if (inMultiModuleMode && window.state && window.state.modules) {
+      const selectedModules = window.state.modules.filter(m => currentModuleIds.includes(m.id));
+      moduleDropdown = '<div class="form-group"><label for="module-select">Module:</label>' +
+        '<select id="module-select" name="module_id" required>' +
+        '<option value="">Select a module...</option>' +
+        selectedModules.map(m => '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>').join('') +
+        '</select></div>';
+    }
     return '<div class="faq-form"><h4>' + (isEditing ? 'Edit' : 'Create') + ' Question</h4>' +
       '<form onsubmit="FAQList.handleSubmit(event); return false;">' +
+      moduleDropdown +
       '<div class="form-group"><label for="question-text">Question:</label>' +
       '<textarea id="question-text" name="question" required rows="2" placeholder="Enter the question...">' +
       (isEditing ? escapeHtml(question.question) : '') + '</textarea></div>' +
@@ -119,6 +132,24 @@
       if (!response.ok) throw new Error('Failed to load questions');
       questions = await response.json();
       currentModuleId = moduleId;
+      currentProjectId = null;
+      currentModuleIds = [];
+      selectedTag = null;
+      render();
+    } catch (error) {
+      showError(error.message);
+    }
+  }
+
+  async function loadQuestionsMultiple(projectId, moduleIds) {
+    try {
+      const modulesParam = moduleIds.length > 0 ? '?modules=' + moduleIds.join(',') : '';
+      const response = await fetch(API_BASE + '/projects/' + projectId + '/faqs' + modulesParam);
+      if (!response.ok) throw new Error('Failed to load questions');
+      questions = await response.json();
+      currentProjectId = projectId;
+      currentModuleIds = moduleIds;
+      currentModuleId = null;
       selectedTag = null;
       render();
     } catch (error) {
@@ -135,7 +166,7 @@
   }
 
   function filterByTag(tag) {
-    selectedTag = tag;
+    selectedTag = (selectedTag === tag) ? null : tag;
     render();
   }
 
@@ -156,8 +187,14 @@
     if (!data.question || !data.answer) { showError('Both question and answer are required'); return; }
     try {
       const isEditing = editingQuestionId > 0;
+      let targetModuleId = currentModuleId;
+      if (!isEditing && currentModuleIds.length > 1) {
+        const selectedModuleId = formData.get('module_id');
+        if (!selectedModuleId) { showError('Please select a module'); return; }
+        targetModuleId = parseInt(selectedModuleId, 10);
+      }
       const url = isEditing ? API_BASE + '/faqs/' + editingQuestionId :
-        API_BASE + '/modules/' + currentModuleId + '/faqs';
+        API_BASE + '/modules/' + targetModuleId + '/faqs';
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -165,7 +202,11 @@
       });
       if (!response.ok) throw new Error(isEditing ? 'Failed to update question' : 'Failed to create question');
       editingQuestionId = null;
-      await loadQuestions(currentModuleId);
+      if (currentProjectId) {
+        await loadQuestionsMultiple(currentProjectId, currentModuleIds);
+      } else {
+        await loadQuestions(currentModuleId);
+      }
     } catch (error) {
       showError(error.message);
     }
@@ -180,7 +221,11 @@
         headers: { 'X-Delete-Password': password }
       });
       if (!response.ok) throw new Error('Failed to delete question');
-      await loadQuestions(currentModuleId);
+      if (currentProjectId) {
+        await loadQuestionsMultiple(currentProjectId, currentModuleIds);
+      } else {
+        await loadQuestions(currentModuleId);
+      }
     } catch (error) {
       showError(error.message);
     }
@@ -192,7 +237,7 @@
   }
 
   window.FAQList = {
-    load: loadQuestions, render, toggleQuestion, filterByTag, showCreateForm,
+    load: loadQuestions, loadMultiple: loadQuestionsMultiple, render, toggleQuestion, filterByTag, showCreateForm,
     editQuestion, deleteQuestion, cancelForm, handleSubmit,
     renderHtml: renderQuestionList
   };
