@@ -22,6 +22,7 @@
   let currentModuleId = null, flashcards = [], editingFlashcardId = null, selectedFlashcardId = null;
   let currentProjectId = null;
   let currentModuleIds = [];
+  let searchText = '';
 
   function renderFlashcardChip(fc) {
     const isSelected = fc.id === selectedFlashcardId;
@@ -46,16 +47,36 @@
       '</div></div>';
   }
 
+  function getFilteredFlashcards() {
+    if (!searchText.trim()) return flashcards;
+    const query = searchText.toLowerCase().trim();
+    return flashcards.filter(fc =>
+      fc.front.toLowerCase().includes(query) || fc.back.toLowerCase().includes(query)
+    );
+  }
+
   function renderFlashcardList() {
+    const filtered = getFilteredFlashcards();
+    const isFiltering = searchText.trim().length > 0;
+    const countDisplay = isFiltering
+      ? 'Flashcards (' + filtered.length + ' of ' + flashcards.length + ')'
+      : 'Flashcards (' + flashcards.length + ')';
+
     return '<div class="flashcard-section"><div class="section-header">' +
-      '<h3>Flashcards (' + flashcards.length + ')</h3><div class="section-actions">' +
+      '<h3>' + countDisplay + '</h3><div class="section-actions">' +
       (flashcards.length > 0 ? '<button onclick="FlashcardList.startReview()" class="btn-primary">Start Review</button>' : '') +
       '<button onclick="FlashcardList.showCreateForm()">Add Flashcard</button></div></div>' +
+      (flashcards.length > 0 ? '<div class="fc-search-container">' +
+        '<input type="text" class="fc-search-input" placeholder="Search flashcards..." ' +
+        'value="' + escapeHtml(searchText) + '" oninput="FlashcardList.updateSearch(this.value)" />' +
+        (searchText ? '<button class="fc-search-clear" onclick="FlashcardList.clearSearch()">&times;</button>' : '') +
+        '</div>' : '') +
       (editingFlashcardId !== null ? renderFlashcardForm() : '') +
       '<div class="fc-split-layout">' +
       '<div class="fc-chips-panel">' +
       (flashcards.length === 0 ? '<p class="empty-state">No flashcards yet. Create your first one!</p>' :
-        flashcards.map(fc => renderFlashcardChip(fc)).join('')) +
+        (filtered.length === 0 ? '<p class="empty-state">No flashcards match your search.</p>' :
+          filtered.map(fc => renderFlashcardChip(fc)).join(''))) +
       '</div>' +
       '<div class="fc-detail-panel-container">' +
       (selectedFlashcardId === null && flashcards.length > 0 ? '<p class="fc-placeholder">Select a flashcard to view details</p>' : renderDetailPanel()) +
@@ -131,6 +152,16 @@
   function editFlashcard(id) { editingFlashcardId = id; selectedFlashcardId = null; render(); }
   function cancelForm() { editingFlashcardId = null; render(); }
 
+  function updateSearch(value) {
+    searchText = value;
+    render();
+  }
+
+  function clearSearch() {
+    searchText = '';
+    render();
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -198,6 +229,7 @@
   window.FlashcardList = {
     load: loadFlashcards, loadMultiple: loadFlashcardsMultiple, render, selectFlashcard, closeDetail, showCreateForm,
     editFlashcard, deleteFlashcard, cancelForm, handleSubmit,
-    startReview, renderHtml: renderFlashcardList
+    startReview, renderHtml: renderFlashcardList,
+    updateSearch, clearSearch
   };
 })();
