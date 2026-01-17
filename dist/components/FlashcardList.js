@@ -154,7 +154,41 @@
 
   function updateSearch(value) {
     searchText = value;
-    render();
+    // Update only the count and chips without replacing the input (prevents focus loss)
+    const filtered = getFilteredFlashcards();
+    const isFiltering = searchText.trim().length > 0;
+    const countDisplay = isFiltering
+      ? 'Flashcards (' + filtered.length + ' of ' + flashcards.length + ')'
+      : 'Flashcards (' + flashcards.length + ')';
+
+    // Update count in header (safe - no user content)
+    const header = document.querySelector('.flashcard-section .section-header h3');
+    if (header) header.textContent = countDisplay;
+
+    // Update chips panel (uses escapeHtml for all user content)
+    const chipsPanel = document.querySelector('.fc-chips-panel');
+    if (chipsPanel) {
+      if (filtered.length === 0 && flashcards.length > 0) {
+        chipsPanel.innerHTML = '<p class="empty-state">No flashcards match your search.</p>';
+      } else {
+        chipsPanel.innerHTML = filtered.map(fc => renderFlashcardChip(fc)).join('');
+      }
+    }
+
+    // Show/hide clear button dynamically
+    const searchContainer = document.querySelector('.fc-search-container');
+    if (searchContainer) {
+      let clearBtn = searchContainer.querySelector('.fc-search-clear');
+      if (searchText && !clearBtn) {
+        clearBtn = document.createElement('button');
+        clearBtn.className = 'fc-search-clear';
+        clearBtn.textContent = '\u00D7';
+        clearBtn.onclick = function() { FlashcardList.clearSearch(); };
+        searchContainer.appendChild(clearBtn);
+      } else if (!searchText && clearBtn) {
+        clearBtn.remove();
+      }
+    }
   }
 
   function clearSearch() {
