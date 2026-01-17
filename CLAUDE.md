@@ -8,14 +8,12 @@ Personal learning platform with flashcards and FAQs for studying technical topic
 - **Dev Server**: `npm run dev` (port 8788)
 - **Deploy**: `npm run deploy`
 
-## Documentation
+## Slash Commands
 
-- [AI Behavior Guidelines](.claude/ai-behavior.md) - Communication style and code generation principles
-- [Architecture](.claude/architecture.md) - System design and component structure
-- [API Reference](.claude/api.md) - REST endpoints and database schema
-- [Frontend](.claude/frontend.md) - UI components and styling
-- [Coding Standards](.claude/coding-standards.md) - TypeScript conventions and patterns
-- [Deployment](.claude/deployment.md) - Cloudflare Workers deployment guide
+- `/project:fix-issue <number>` - Pull and fix a GitHub issue
+- `/project:pr-prep` - Run checks and prepare commit
+- `/project:db-sync` - Sync local D1 database to remote
+- `/project:deploy` - Deploy to Cloudflare with verification
 
 ## Tech Stack
 
